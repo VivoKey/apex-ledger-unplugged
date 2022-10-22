@@ -1,26 +1,3 @@
-/*
-*******************************************************************************
-*   Java Card Bitcoin Hardware Wallet
-*   (c) 2015 Ledger
-*
-*   This program is free software: you can redistribute it and/or modify
-*   it under the terms of the GNU Affero General Public License as
-*   published by the Free Software Foundation, either version 3 of the
-*   License, or (at your option) any later version.
-*
-*   This program is distributed in the hope that it will be useful,
-*   but WITHOUT ANY WARRANTY; without even the implied warranty of
-*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-*   GNU Affero General Public License for more details.
-*
-*   You should have received a copy of the GNU Affero General Public License
-*   along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*******************************************************************************
-*/
-
-/* This file is automatically processed from the .javap version and only included for convenience. Please refer to the .javap file
-   for more readable code */
-
 package com.ledger.wallet;
 import javacard.framework.APDU;
 import javacard.framework.Applet;
@@ -76,10 +53,6 @@ public class LedgerWalletApplet extends Applet {
         setup = TC.FALSE;
         limitsSet = TC.FALSE;
     }
-    protected static void writeIdleText() {
-        short offset = Util.arrayCopyNonAtomic(TEXT_IDLE, (short)0, LWNFCForumApplet.FILE_DATA, LWNFCForumApplet.OFFSET_TEXT, (short)TEXT_IDLE.length);
-        LWNFCForumApplet.writeHeader((short)(offset - LWNFCForumApplet.OFFSET_TEXT));
-    }
     protected static boolean isContactless() {
         return ((APDU.getProtocol() & APDU.PROTOCOL_MEDIA_MASK) == APDU.PROTOCOL_MEDIA_CONTACTLESS_TYPE_A);
     }
@@ -121,16 +94,7 @@ public class LedgerWalletApplet extends Applet {
      return Base58.encode(scratch256, (short)0, (short)25, out, outOffset, scratch256, (short)100);
     }
     private static void signTransientPrivate(byte[] keyBuffer, short keyOffset, byte[] dataBuffer, short dataOffset, byte[] targetBuffer, short targetOffset) {
-        if ((proprietaryAPI == null) || (!proprietaryAPI.hasDeterministicECDSASHA256())) {
-            Crypto.signTransientPrivate(keyBuffer, keyOffset, dataBuffer, dataOffset, targetBuffer, targetOffset);
-        }
-        else {
-            Crypto.initTransientPrivate(keyBuffer, keyOffset);
-            proprietaryAPI.signDeterministicECDSASHA256(Crypto.transientPrivate, dataBuffer, dataOffset, (short)32, targetBuffer, targetOffset);
-            if (Crypto.transientPrivateTransient) {
-                Crypto.transientPrivate.clearKey();
-            }
-        }
+        Crypto.signTransientPrivate(keyBuffer, keyOffset, dataBuffer, dataOffset, targetBuffer, targetOffset);
     }
     private static void checkAirgapPersonalizationAvailable() throws ISOException {
         if ((attestationPublic == null) || (Crypto.keyAgreement == null) || (Crypto.keyPair == null) || (Crypto.blobEncryptDecryptAES == null) || (pairingKey == null)) {
@@ -219,7 +183,7 @@ public class LedgerWalletApplet extends Applet {
         i = Bip32Cache.copyPrivateBest(buffer, (short)(ISO7816.OFFSET_CDATA + 1), derivationSize, scratch256, (short)0);
         for (; i<derivationSize; i++) {
          Util.arrayCopyNonAtomic(buffer, (short)(offset + 4 * i), scratch256, Bip32.OFFSET_DERIVATION_INDEX, (short)4);
-         if ((proprietaryAPI == null) && ((scratch256[Bip32.OFFSET_DERIVATION_INDEX] & (byte)0x80) == 0)) {
+         if ((scratch256[Bip32.OFFSET_DERIVATION_INDEX] & (byte)0x80) == 0) {
           if (!Bip32Cache.setPublicIndex(buffer, (short)(ISO7816.OFFSET_CDATA + 1), i)) {
            ISOException.throwIt(SW_PUBLIC_POINT_NOT_AVAILABLE);
           }
@@ -256,7 +220,7 @@ public class LedgerWalletApplet extends Applet {
         i = Bip32Cache.copyPrivateBest(buffer, (short)(ISO7816.OFFSET_CDATA + 1), derivationSize, scratch256, (short)0);
         for (; i<derivationSize; i++) {
          Util.arrayCopyNonAtomic(buffer, (short)(offset + 4 * i), scratch256, Bip32.OFFSET_DERIVATION_INDEX, (short)4);
-         if ((proprietaryAPI == null) && ((scratch256[Bip32.OFFSET_DERIVATION_INDEX] & (byte)0x80) == 0)) {
+         if ((scratch256[Bip32.OFFSET_DERIVATION_INDEX] & (byte)0x80) == 0) {
           if (!Bip32Cache.setPublicIndex(buffer, (short)(ISO7816.OFFSET_CDATA + 1), i)) {
            ISOException.throwIt(SW_PUBLIC_POINT_NOT_AVAILABLE);
           }
@@ -282,9 +246,6 @@ public class LedgerWalletApplet extends Applet {
     private static void handleGetFeatures(APDU apdu) throws ISOException {
      byte[] buffer = apdu.getBuffer();
      buffer[0] = (byte)0;
-     if (proprietaryAPI != null) {
-      buffer[0] |= JC_FEATURE_HAS_PROPRIETARY_API;
-     }
      apdu.setOutgoingAndSend((short)0, (short)1);
     }
     private static void handleGetWalletPublicKey(APDU apdu) throws ISOException {
@@ -300,7 +261,7 @@ public class LedgerWalletApplet extends Applet {
         i = Bip32Cache.copyPrivateBest(buffer, (short)(ISO7816.OFFSET_CDATA + 1), derivationSize, scratch256, (short)0);
         for (; i<derivationSize; i++) {
          Util.arrayCopyNonAtomic(buffer, (short)(offset + 4 * i), scratch256, Bip32.OFFSET_DERIVATION_INDEX, (short)4);
-         if ((proprietaryAPI == null) && ((scratch256[Bip32.OFFSET_DERIVATION_INDEX] & (byte)0x80) == 0)) {
+         if ((scratch256[Bip32.OFFSET_DERIVATION_INDEX] & (byte)0x80) == 0) {
           if (!Bip32Cache.setPublicIndex(buffer, (short)(ISO7816.OFFSET_CDATA + 1), i)) {
            ISOException.throwIt(SW_PUBLIC_POINT_NOT_AVAILABLE);
           }
@@ -310,19 +271,12 @@ public class LedgerWalletApplet extends Applet {
          }
          Bip32Cache.storePrivate(buffer, (short)(ISO7816.OFFSET_CDATA + 1), (byte)(i + 1), scratch256);
         }
-        if (proprietaryAPI == null) {
-      if (!Bip32Cache.setPublicIndex(buffer, offset, derivationSize)) {
-       ISOException.throwIt(SW_PUBLIC_POINT_NOT_AVAILABLE);
-      }
+        if (!Bip32Cache.setPublicIndex(buffer, offset, derivationSize)) {
+            ISOException.throwIt(SW_PUBLIC_POINT_NOT_AVAILABLE);
         }
         offset = 0;
         buffer[offset++] = (short)65;
-        if (proprietaryAPI == null) {
-         Bip32Cache.copyLastPublic(buffer, offset);
-        }
-        else {
-         proprietaryAPI.getUncompressedPublicPoint(scratch256, (short)0, buffer, offset);
-        }
+        Bip32Cache.copyLastPublic(buffer, offset);
         Util.arrayCopyNonAtomic(scratch256, (short)32, buffer, (short)200, (short)32);
         Util.arrayCopyNonAtomic(buffer, offset, scratch256, (short)0, (short)65);
         AddressUtils.compressPublicKey(scratch256, (short)0);
@@ -424,18 +378,6 @@ public class LedgerWalletApplet extends Applet {
             return;
         }
     }
-    private static short writeAmount(short textOffset, short amountOffset, byte[] addressBuffer, short addressOffset) {
-        textOffset = BCDUtils.hexAmountToDisplayable(TC.ctx, amountOffset, LWNFCForumApplet.FILE_DATA, textOffset);
-        LWNFCForumApplet.FILE_DATA[textOffset++] = TEXT_SPACE;
-        textOffset = Util.arrayCopyNonAtomic(TEXT_BTC, (short)0, LWNFCForumApplet.FILE_DATA, textOffset, (short)TEXT_BTC.length);
-        LWNFCForumApplet.FILE_DATA[textOffset++] = TEXT_SPACE;
-        textOffset = Util.arrayCopyNonAtomic(TEXT_TO, (short)0, LWNFCForumApplet.FILE_DATA, textOffset, (short)TEXT_TO.length);
-        Util.arrayCopyNonAtomic(addressBuffer, addressOffset, scratch256, (short)0, (short)(TC.SIZEOF_RIPEMD + 1));
-        Crypto.digestScratch.doFinal(scratch256, (short)0, (short)(TC.SIZEOF_RIPEMD + 1), scratch256, (short)(TC.SIZEOF_RIPEMD + 1));
-        Crypto.digestScratch.doFinal(scratch256, (short)(TC.SIZEOF_RIPEMD + 1), TC.SIZEOF_SHA256, scratch256, (short)(TC.SIZEOF_RIPEMD + 1));
-        textOffset = Base58.encode(scratch256, (short)0, (short)(TC.SIZEOF_RIPEMD + 1 + 4), LWNFCForumApplet.FILE_DATA, textOffset, scratch256, (short)100);
-        return textOffset;
-    }
     private static void handleHashOutputFullChange(APDU apdu) throws ISOException {
         byte[] buffer = apdu.getBuffer();
         short offset = (short)(ISO7816.OFFSET_CDATA);
@@ -458,7 +400,7 @@ public class LedgerWalletApplet extends Applet {
         i = Bip32Cache.copyPrivateBest(buffer, offset, addressLength, scratch256, (short)0);
         for (; i<addressLength; i++) {
             Util.arrayCopyNonAtomic(buffer, (short)(offset + 4 * i), scratch256, Bip32.OFFSET_DERIVATION_INDEX, (short)4);
-            if ((proprietaryAPI == null) && ((scratch256[Bip32.OFFSET_DERIVATION_INDEX] & (byte)0x80) == 0)) {
+            if ((scratch256[Bip32.OFFSET_DERIVATION_INDEX] & (byte)0x80) == 0) {
                 if (!Bip32Cache.setPublicIndex(buffer, offset, i)) {
                     ISOException.throwIt(SW_PUBLIC_POINT_NOT_AVAILABLE);
                 }
@@ -468,15 +410,10 @@ public class LedgerWalletApplet extends Applet {
             }
             Bip32Cache.storePrivate(buffer, offset, (byte)(i + 1), scratch256);
         }
-        if (proprietaryAPI == null) {
-            if (!Bip32Cache.setPublicIndex(buffer, offset, addressLength)) {
-                ISOException.throwIt(SW_PUBLIC_POINT_NOT_AVAILABLE);
-            }
-            Bip32Cache.copyLastPublic(scratch256, (short)0);
+        if (!Bip32Cache.setPublicIndex(buffer, offset, addressLength)) {
+            ISOException.throwIt(SW_PUBLIC_POINT_NOT_AVAILABLE);
         }
-        else {
-            proprietaryAPI.getUncompressedPublicPoint(scratch256, (short)0, scratch256, (short)0);
-        }
+        Bip32Cache.copyLastPublic(scratch256, (short)0);
         AddressUtils.compressPublicKey(scratch256, (short)0);
         Crypto.digestScratch.doFinal(scratch256, (short)0, (short)33, scratch256, (short)0);
         if (Crypto.digestRipemd != null) {
@@ -596,36 +533,6 @@ public class LedgerWalletApplet extends Applet {
                         ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
                     }
                 }
-                if (TC.ctxP[TC.P_TX_Z_WIRED] == TC.TRUE) {
-                    short textOffset = LWNFCForumApplet.OFFSET_TEXT;
-                    textOffset = Util.arrayCopyNonAtomic(TEXT_CONFIRM, (short)0, LWNFCForumApplet.FILE_DATA, textOffset, (short)TEXT_CONFIRM.length);
-                    textOffset = writeAmount(textOffset, TC.TX_A_OUTPUT_AMOUNT, TC.ctxP, TC.P_TX_A_OUTPUT_ADDRESS);
-                    LWNFCForumApplet.FILE_DATA[textOffset++] = TEXT_SPACE;
-                    textOffset = Util.arrayCopyNonAtomic(TEXT_FEES, (short)0, LWNFCForumApplet.FILE_DATA, textOffset, (short)TEXT_FEES.length);
-                    textOffset = BCDUtils.hexAmountToDisplayable(TC.ctx, TC.TX_A_FEE_AMOUNT, LWNFCForumApplet.FILE_DATA, textOffset);
-                    LWNFCForumApplet.FILE_DATA[textOffset++] = TEXT_SPACE;
-                    textOffset = Util.arrayCopyNonAtomic(TEXT_BTC, (short)0, LWNFCForumApplet.FILE_DATA, textOffset, (short)TEXT_BTC.length);
-                    LWNFCForumApplet.FILE_DATA[textOffset++] = TEXT_COMMA;
-                    if (changeFilled) {
-                        textOffset = Util.arrayCopyNonAtomic(TEXT_NO_CHANGE, (short)0, LWNFCForumApplet.FILE_DATA, textOffset, (short)TEXT_NO_CHANGE.length);
-                    }
-                    else {
-                        textOffset = Util.arrayCopyNonAtomic(TEXT_CHANGE, (short)0, LWNFCForumApplet.FILE_DATA, textOffset, (short)TEXT_CHANGE.length);
-                        LWNFCForumApplet.FILE_DATA[textOffset++] = TEXT_SPACE;
-                        textOffset = writeAmount(textOffset, TC.TX_A_CHANGE_AMOUNT, TC.ctx, TC.TX_A_CHANGE_ADDRESS);
-                    }
-                    LWNFCForumApplet.FILE_DATA[textOffset++] = TEXT_CLOSE_P;
-                    LWNFCForumApplet.FILE_DATA[textOffset++] = TEXT_SPACE;
-                    textOffset = Util.arrayCopyNonAtomic(TEXT_PIN, (short)0, LWNFCForumApplet.FILE_DATA, textOffset, (short)TEXT_PIN.length);
-                    for (i=0; i<TRANSACTION_PIN_SIZE; i++) {
-                        scratch256[i] = (byte)(Crypto.getRandomByteModulo((byte)10));
-                        scratch256[i] += (byte)'0';
-                    }
-                    transactionPin.resetAndUnblock();
-                    transactionPin.update(scratch256, (short)0, TRANSACTION_PIN_SIZE);
-                    textOffset = Util.arrayCopyNonAtomic(scratch256, (short)0, LWNFCForumApplet.FILE_DATA, textOffset, TRANSACTION_PIN_SIZE);
-                    LWNFCForumApplet.writeHeader((short)(textOffset - LWNFCForumApplet.OFFSET_TEXT));
-                }
             }
             Crypto.digestAuthorization.doFinal(TC.ctxP, TC.P_TX_A_NONCE, TC.SIZEOF_NONCE, TC.ctxP, TC.P_TX_A_AUTHORIZATION_HASH);
         }
@@ -681,7 +588,7 @@ public class LedgerWalletApplet extends Applet {
         offset += (short)(i * 4);
         for (; i<derivationSize; i++) {
             Util.arrayCopyNonAtomic(buffer, offset, scratch256, Bip32.OFFSET_DERIVATION_INDEX, (short)4);
-            if ((proprietaryAPI == null) && ((scratch256[Bip32.OFFSET_DERIVATION_INDEX] & (byte)0x80) == 0)) {
+            if ((scratch256[Bip32.OFFSET_DERIVATION_INDEX] & (byte)0x80) == 0) {
                 if (!Bip32Cache.setPublicIndex(buffer, (short)(ISO7816.OFFSET_CDATA + 1), i)) {
                     ISOException.throwIt(SW_PUBLIC_POINT_NOT_AVAILABLE);
                 }
@@ -702,7 +609,6 @@ public class LedgerWalletApplet extends Applet {
         short authorizationLength = (short)(buffer[offset++] & 0xff);
         if (TC.ctxP[TC.P_TX_Z_CONSUME_P2SH] == TC.FALSE) {
             boolean verified = false;
-            writeIdleText();
             if (TC.ctxP[TC.P_TX_Z_USE_KEYCARD] == TC.TRUE) {
                 Util.arrayCopyNonAtomic(TC.ctxP, TC.P_TX_A_OUTPUT_ADDRESS, scratch256, (short)32, (short)(TC.SIZEOF_RIPEMD + 1));
                 Crypto.digestScratch.doFinal(scratch256, (short)32, (short)(TC.SIZEOF_RIPEMD + 1), scratch256, (short)(32 + TC.SIZEOF_RIPEMD + 1));
@@ -882,14 +788,6 @@ public class LedgerWalletApplet extends Applet {
             if (airgap) {
                 Util.arrayCopyNonAtomic(scratch256, (short)0, scratch256, (short)(256 - DEFAULT_SEED_LENGTH), DEFAULT_SEED_LENGTH);
             }
-         short textOffset = LWNFCForumApplet.OFFSET_TEXT;
-         textOffset = Util.arrayCopyNonAtomic(TEXT_SEED, (short)0, LWNFCForumApplet.FILE_DATA, textOffset, (short)TEXT_SEED.length);
-         for (byte i=0; i<DEFAULT_SEED_LENGTH; i++) {
-          LWNFCForumApplet.FILE_DATA[textOffset++] = HEX[(scratch256[i] >> 4) & 0x0f];
-          LWNFCForumApplet.FILE_DATA[textOffset++] = HEX[scratch256[i] & 0x0f];
-         }
-         LWNFCForumApplet.writeHeader((short)(textOffset - LWNFCForumApplet.OFFSET_TEXT));
-         LWNFCForumApplet.erase = true;
         }
         else {
          if ((keyLength < 0) || (keyLength > DEFAULT_SEED_LENGTH)) {
@@ -1028,10 +926,6 @@ public class LedgerWalletApplet extends Applet {
     }
     public void process(APDU apdu) throws ISOException {
         if (selectingApplet()) {
-         if (LWNFCForumApplet.erase) {
-          writeIdleText();
-          LWNFCForumApplet.erase = false;
-         }
             return;
         }
         byte[] buffer = apdu.getBuffer();
@@ -1334,7 +1228,6 @@ public class LedgerWalletApplet extends Applet {
     private static final byte SEED_NOT_TYPED = (byte)0x00;
     private static final byte SEED_ENCODED_AIRGAP = (byte)0xF0;
     private static final byte AVAILABLE_MODES[] = { MODE_WALLET, MODE_RELAXED_WALLET, MODE_SERVER, MODE_DEVELOPER };
-    private static final byte JC_FEATURE_HAS_PROPRIETARY_API = (byte)0x01;
     public static byte[] scratch256;
     private static OwnerPIN transactionPin;
     private static OwnerPIN walletPin;
@@ -1353,7 +1246,6 @@ public class LedgerWalletApplet extends Applet {
     private static byte p2shVersion;
     protected static byte[] masterDerived;
     private static byte[] limits;
-    protected static ProprietaryAPI proprietaryAPI;
     protected static AESKey pairingKey;
     protected static ECPrivateKey attestationPrivate;
     protected static byte[] attestationPublic;
